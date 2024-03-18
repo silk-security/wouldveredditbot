@@ -30,7 +30,6 @@ def read_comments(comments: list[praw.models.Comment]):
             comment.refresh()
             comment.replies.replace_more()
             if regex_match := re.search(r"(would|could|should) of", comment.body):
-                print(regex_match[1])
                 comment.reply(f'Hi! I just wanted to let you know that you said "{regex_match[1]} of" when the correct spelling is "{regex_match[1]}\'ve" which is actually a contraction of "{regex_match[1]} have." Hope this helps!\n\n_I am a bot, and this action was performed automatically._')
         
         seen_comments.add(comment.id)
@@ -52,7 +51,7 @@ if __name__ == '__main__':
     except Exception:
         seen_comments = set()
 
-    print(seen_comments)
+
     try:
         for submission in subreddit.new(limit=5):
             comments = list(submission.comments)
