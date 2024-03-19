@@ -1,5 +1,7 @@
 import os
-import praw
+import praw.models
+from praw.exceptions import PRAWException
+from prawcore.exceptions import PrawcoreException
 import re
 import backoff
 from dotenv import load_dotenv
@@ -19,18 +21,15 @@ def handler(details):
     wait = details['wait']
     print(f"Backing off for {wait:0.1f} seconds")
 
-@backoff.on_exception(wait_gen=backoff.expo,exception=Exception, max_tries=5,on_backoff=handler)
-def read_comments(comments: list[praw.models.Comment]):
-    print(f"Calling read comments on {len(comments)} comments")
-    for comment in comments:
-        if type(comment) is praw.models.MoreComments:
-            read_comments(list(comment.comments()))
-        elif comment.author.name != reddit.user.me().name or comment not in seen_comments:
-            print(comment.author.name)
-            comment.refresh()
-            comment.replies.replace_more()
+@backoff.on_exception(wait_gen=backoff.expo,exception=[PRAWException, PrawcoreException], max_tries=5,on_backoff=handler)
+def read_sub_comments(subreddit: praw.models.Subreddit):
+    for comment in subreddit.stream.comments():
+        if comment in seen_comments:
+            continue
+        elif comment.author is not None and comment.author.name != reddit.user.me().name:
             if regex_match := re.search(r"(would|could|should) of", comment.body):
-                comment.reply(f'Hi! I just wanted to let you know that you said "{regex_match[1]} of" when the correct spelling is "{regex_match[1]}\'ve" which is actually a contraction of "{regex_match[1]} have." Hope this helps!\n\n_I am a bot, and this action was performed automatically._')
+                print(f"Found {regex_match[1]}")
+                # comment.reply(f'Hi! I just wanted to let you know that you said "{regex_match[1]} of" when the correct spelling is "{regex_match[1]}\'ve" which is actually a contraction of "{regex_match[1]} have." Hope this helps!\n\n_I am a bot, and this action was performed automatically._')
         
         seen_comments.add(comment.id)
 
@@ -51,12 +50,12 @@ if __name__ == '__main__':
     except Exception:
         seen_comments = set()
 
+    subreddit_strs = ["test"]
+    subreddits = [reddit.subreddit(sub) for sub in subreddit_strs]
 
     try:
-        for submission in subreddit.new(limit=5):
-            comments = list(submission.comments)
-            print(f"reading comments for submission: {submission.title}")
-            read_comments(list(submission.comments))
+        for sub in subreddits:
+            read_sub_comments(sub)
     finally:
         with open("comments.pk", 'wb') as f:
             pickle.dump(seen_comments, f)
