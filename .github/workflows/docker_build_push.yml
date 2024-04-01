@@ -1,0 +1,36 @@
+name: Build and Push to Artifact Registry
+
+on:
+    push:
+      branches: ["main"]
+      paths-ignore:
+        - "*.md"
+
+env:
+  PROJECT_ID: silk-demo-project
+  REGION: us-central1
+  REGISTRY_URI: us-central1-docker.pkg.dev/silk-demo-project/test/app
+
+
+jobs:
+    build-push-artifact:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v3
+
+            - name: Authenticate GCP CLI
+              uses: google-github-actions/auth@v1
+              with:
+                credentials_json: ${{secrets.SERVICE_ACCOUNT_KEY}}
+
+            - name: Authenticate Docker
+              run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
+
+            - name: Build image
+              run: docker build . -t ${{ env.REGISTRY_URI }}
+
+            - name: Push image
+              run: docker push ${{ env.REGISTRY_URI }}
+
+
+
