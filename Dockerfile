@@ -10,5 +10,6 @@ RUN pip install poetry
 
 RUN poetry install --no-root
 
+EXPOSE 8080
 
 CMD ["python", "main.py"]
