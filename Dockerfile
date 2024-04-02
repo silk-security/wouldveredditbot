@@ -10,6 +10,10 @@ RUN pip install poetry
 
 RUN poetry install --no-root
 
+# For health check
+RUN apt-get update && apt-get install -y netcat-traditional
 EXPOSE 8080
 
-CMD ["python", "main.py"]
+RUN chmod 700 run.sh
+
+CMD ./run.sh
